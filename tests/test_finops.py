@@ -196,7 +196,7 @@ class TestAnomalyDetection:
 
     def test_ignores_normal_variation(self):
         noisy = [100.0, 105.0, 95.0, 110.0, 90.0] * 3
-        anomalies = detect(noisy_series := series(noisy + [108.0]))
+        anomalies = detect(noisy_series := series([*noisy, 108.0]))
 
         assert anomalies == []
         assert len(noisy_series) == 16
@@ -206,7 +206,7 @@ class TestAnomalyDetection:
         deviation: one legitimate spike must not raise the bar so far that the
         next anomaly slips under it."""
         history = [100.0] * 7 + [900.0] + [100.0] * 6
-        anomalies = detect(series(history + [420.0]))
+        anomalies = detect(series([*history, 420.0]))
 
         assert len(anomalies) == 1
         assert anomalies[0].amount_usd == 420.0
