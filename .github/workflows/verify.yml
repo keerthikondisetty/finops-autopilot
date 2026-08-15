@@ -16,8 +16,15 @@ jobs:
         python-version: ['3.11', '3.12', '3.13']
     steps:
       - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v5
-      - run: uv pip install --system -e ".[dev]"
+      # setup-python rather than setup-uv, and plain pip rather than
+      # `uv pip install --system`. The runner's system interpreter is
+      # externally managed, so --system fails outright -- and because uv
+      # never saw setup-python's interpreter, the version matrix below was
+      # running three identical jobs on 3.12.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install -e ".[dev]"
       - run: ruff check src tests
       - run: mypy src/finops
       - run: pytest
