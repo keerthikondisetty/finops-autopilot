@@ -1,0 +1,43 @@
+name: cost delta
+
+# Comments the estimated monthly cost change on every infrastructure PR.
+# The point is to make cost a review-time signal rather than a month-end
+# surprise: a reviewer who can see "+$340/month" argues about it before it
+# ships, not afterwards.
+on:
+  pull_request:
+    paths: ['**.tf', '**.tf.json']
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  infracost:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+
+      - uses: infracost/actions/setup@v3
+        with:
+          api-key: ${{ secrets.INFRACOST_API_KEY }}
+
+      - name: baseline cost
+        run: infracost breakdown --path=. --format=json --out-file=/tmp/base.json
+
+      - uses: actions/checkout@v5
+
+      - name: cost diff
+        run: |
+          infracost diff --path=. --compare-to=/tmp/base.json \
+            --format=json --out-file=/tmp/diff.json
+
+      - name: comment on the PR
+        run: |
+          infracost comment github --path=/tmp/diff.json \
+            --repo=$GITHUB_REPOSITORY \
+            --pull-request=${{ github.event.pull_request.number }} \
+            --github-token=${{ github.token }} \
+            --behavior=update
